@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install",
   "buildCommand": "npm run build",
   "functions": {
     "api/**/*.ts": {
@@ -28,13 +27,6 @@
       "source": "/api/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
-    },
-    {
-      "source": "/data/(.*)\\.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=86400" },
         { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
