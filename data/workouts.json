@@ -1,0 +1,74 @@
+[
+  {
+    "id": "chest",
+    "name": "Chest Workout",
+    "body_part": "chest",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0025", "0662", "0308"]
+  },
+  {
+    "id": "back",
+    "name": "Back Workout",
+    "body_part": "back",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0652", "0027", "3017"]
+  },
+  {
+    "id": "shoulders",
+    "name": "Shoulders Workout",
+    "body_part": "shoulders",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0405", "0334", "0310"]
+  },
+  {
+    "id": "upper-arms",
+    "name": "Arms Workout",
+    "body_part": "upper arms",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0294", "0313", "0814"]
+  },
+  {
+    "id": "lower-arms",
+    "name": "Forearms Workout",
+    "body_part": "lower arms",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0126", "0082", "0247"]
+  },
+  {
+    "id": "upper-legs",
+    "name": "Legs Workout",
+    "body_part": "upper legs",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0043", "0336", "0032"]
+  },
+  {
+    "id": "lower-legs",
+    "name": "Calves Workout",
+    "body_part": "lower legs",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0417", "0088", "1370"]
+  },
+  {
+    "id": "waist",
+    "name": "Core Workout",
+    "body_part": "waist",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["0001", "0687", "2466"]
+  },
+  {
+    "id": "cardio",
+    "name": "Cardio Workout",
+    "body_part": "cardio",
+    "work_seconds": 45,
+    "rest_seconds": 15,
+    "exercise_ids": ["1160", "2612", "0685"]
+  }
+]
