@@ -1,11 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "functions": {
-    "api/**/*.ts": {
-      "includeFiles": "data/**"
-    }
-  },
   "rewrites": [
     { "source": "/api/exercises/exercise/:id", "destination": "/api/exercises/:id" },
     { "source": "/api/exercises/bodyPart/:bodyPart", "destination": "/api/exercises?bodyPart=:bodyPart" },
