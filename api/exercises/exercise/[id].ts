@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { BY_ID, getOrigin, withAbsoluteMedia } from '../../lib/data';
+import { BY_ID, getOrigin, withAbsoluteMedia } from '../../../lib/data';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   const id = String(req.query.id ?? '');
