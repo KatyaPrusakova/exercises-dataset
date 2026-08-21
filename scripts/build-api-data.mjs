@@ -64,8 +64,11 @@ const slimOriginal = source.map(ex => ({
   media_id: ex.media_id,
   image: ex.image,
   gif_url: ex.gif_url,
+  video_url: '',
+  explanation_url: '',
   attribution: ex.attribution,
   has_media: true,
+  has_video: false,
   classification: classify(ex),
   difficulty: difficultyFor(ex),
   mechanics: mechanicsFor(ex),
@@ -77,9 +80,11 @@ const slimOriginal = source.map(ex => ({
   planes_of_motion: [],
 }));
 
-// Merge the functional-fitness dataset (already in the extended shape).
+// Merge the functional-fitness dataset (already in the extended shape from
+// scripts/import-functional-fitness.py). Fill in has_video from video_url.
 const functionalPath = join(root, 'data', 'exercises-functional.json');
-const functional = existsSync(functionalPath) ? JSON.parse(readFileSync(functionalPath, 'utf8')) : [];
+const functionalRaw = existsSync(functionalPath) ? JSON.parse(readFileSync(functionalPath, 'utf8')) : [];
+const functional = functionalRaw.map(ex => ({ ...ex, has_video: Boolean(ex.video_url) }));
 
 const combined = [...slimOriginal, ...functional];
 writeFileSync(join(root, 'data', 'exercises.en.json'), JSON.stringify(combined));

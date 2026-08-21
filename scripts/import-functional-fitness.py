@@ -1,49 +1,54 @@
 #!/usr/bin/env python3
 """
-Import Functional Fitness Exercise Database CSV → data/exercises-functional.json.
+Import Functional Fitness Exercise Database → data/exercises-functional.json.
 
-Run once (or when the CSV updates) to produce a JSON file in the same shape
-as data/exercises.en.json output, with extended classification fields.
+Reads the .xlsx export of the source Google Sheet. XLSX is required (not CSV)
+because Google Sheets strips hyperlink URLs on CSV export — the YouTube URLs
+live in `=HYPERLINK(...)` cells and only survive the XLSX export.
 
 Usage:
-    python3 scripts/import-functional-fitness.py <path-to-csv>
+    python3 scripts/import-functional-fitness.py [path-to-xlsx]
 
-The CSV expected at row 16 (1-indexed): the header row. Data starts at row 17.
+Defaults to data/functional-fitness.xlsx. To refresh from the sheet:
+    curl -sSL 'https://docs.google.com/spreadsheets/d/<SHEET_ID>/export?format=xlsx' \\
+      -o data/functional-fitness.xlsx
+    python3 scripts/import-functional-fitness.py
 """
-import csv
 import json
 import re
 import sys
 from pathlib import Path
 
-# Columns in the CSV (0-indexed) — row 16 (1-indexed) is the header.
+import openpyxl
+
+# openpyxl uses 1-indexed columns. Row 16 is the header; data starts at row 17.
+# The sheet has an empty column A (index 1) before the real data.
 COL = {
-    'name':                 1,
-    'short_yt':             2,
-    'deep_yt':              3,
-    'difficulty':           4,
-    'target':               5,
-    'prime_mover':          6,
-    'secondary_muscle':     7,
-    'tertiary_muscle':      8,
-    'primary_equipment':    9,
-    'secondary_equipment':  11,
-    'posture':              13,
-    'grip':                 16,
-    'movement_pattern_1':   21,
-    'movement_pattern_2':   22,
-    'movement_pattern_3':   23,
-    'plane_of_motion_1':    24,
-    'plane_of_motion_2':    25,
-    'plane_of_motion_3':    26,
-    'body_region':          27,
-    'force_type':           28,
-    'mechanics':            29,
-    'laterality':           30,
-    'classification':       31,
+    'name':                 2,
+    'short_yt':             3,
+    'deep_yt':              4,
+    'difficulty':           5,
+    'target':               6,
+    'prime_mover':          7,
+    'secondary_muscle':     8,
+    'tertiary_muscle':      9,
+    'primary_equipment':    10,
+    'secondary_equipment':  12,
+    'posture':              14,
+    'grip':                 17,
+    'movement_pattern_1':   22,
+    'movement_pattern_2':   23,
+    'movement_pattern_3':   24,
+    'plane_of_motion_1':    25,
+    'plane_of_motion_2':    26,
+    'plane_of_motion_3':    27,
+    'body_region':          28,
+    'force_type':           29,
+    'mechanics':            30,
+    'laterality':           31,
+    'classification':       32,
 }
 
-# Body Region → best-fit existing body_part enum value.
 BODY_REGION_TO_PART = {
     'Core':        'waist',
     'Lower Body':  'upper legs',
@@ -52,39 +57,43 @@ BODY_REGION_TO_PART = {
 }
 
 
-def norm(s: str) -> str:
-    """Strip whitespace and collapse internal doubles; return '' for None."""
-    return re.sub(r'\s+', ' ', (s or '')).strip()
+def norm(s) -> str:
+    return re.sub(r'\s+', ' ', (str(s) if s is not None else '')).strip()
 
 
-def clean_choice(s: str) -> str:
-    """Normalize a classification/difficulty value: strip trailing '*' and whitespace."""
-    s = norm(s)
-    return s.rstrip('*').strip()
+def clean_choice(s) -> str:
+    return norm(s).rstrip('*').strip()
 
 
-def transform(row: list[str], idx: int) -> dict:
-    def get(key: str) -> str:
-        i = COL[key]
-        return norm(row[i]) if i < len(row) else ''
+def cell(ws, row: int, key: str):
+    return ws.cell(row=row, column=COL[key])
 
-    name = get('name')
-    body_region = clean_choice(get('body_region'))
-    target = clean_choice(get('target')).lower()
-    prime = clean_choice(get('prime_mover')).lower()
-    secondary = [x for x in (clean_choice(get('secondary_muscle')).lower(),
-                             clean_choice(get('tertiary_muscle')).lower()) if x]
-    equipment = clean_choice(get('primary_equipment')).lower()
-    movement_patterns = [p for p in (get('movement_pattern_1'),
-                                     get('movement_pattern_2'),
-                                     get('movement_pattern_3')) if p]
-    planes = [p for p in (get('plane_of_motion_1'),
-                          get('plane_of_motion_2'),
-                          get('plane_of_motion_3')) if p]
+
+def transform(ws, row_num: int, out_idx: int) -> dict:
+    def val(key: str) -> str:
+        return norm(cell(ws, row_num, key).value)
+
+    def hlink(key: str) -> str:
+        c = cell(ws, row_num, key)
+        return c.hyperlink.target if c.hyperlink else ''
+
+    name = val('name')
+    body_region = clean_choice(val('body_region'))
+    target = clean_choice(val('target')).lower()
+    prime = clean_choice(val('prime_mover')).lower()
+    secondary = [x for x in (clean_choice(val('secondary_muscle')).lower(),
+                             clean_choice(val('tertiary_muscle')).lower()) if x]
+    equipment = clean_choice(val('primary_equipment')).lower()
+    movement_patterns = [p for p in (val('movement_pattern_1'),
+                                     val('movement_pattern_2'),
+                                     val('movement_pattern_3')) if p]
+    planes = [p for p in (val('plane_of_motion_1'),
+                          val('plane_of_motion_2'),
+                          val('plane_of_motion_3')) if p]
     body_part = BODY_REGION_TO_PART.get(body_region, '')
 
     return {
-        'id': f'ff-{idx:04d}',
+        'id': f'ff-{out_idx:04d}',
         'name': name.lower(),
         'category': body_part,
         'body_part': body_part,
@@ -98,54 +107,54 @@ def transform(row: list[str], idx: int) -> dict:
         'media_id': '',
         'image': '',
         'gif_url': '',
+        'video_url':       hlink('short_yt'),
+        'explanation_url': hlink('deep_yt'),
         'attribution': '',
         'has_media': False,
-        'classification':      clean_choice(get('classification')),
-        'difficulty':          clean_choice(get('difficulty')),
-        'mechanics':           clean_choice(get('mechanics')),
-        'laterality':          clean_choice(get('laterality')),
-        'force_type':          clean_choice(get('force_type')),
-        'posture':             clean_choice(get('posture')),
-        'grip':                clean_choice(get('grip')),
+        'classification':      clean_choice(val('classification')),
+        'difficulty':          clean_choice(val('difficulty')),
+        'mechanics':           clean_choice(val('mechanics')),
+        'laterality':          clean_choice(val('laterality')),
+        'force_type':          clean_choice(val('force_type')),
+        'posture':             clean_choice(val('posture')),
+        'grip':                clean_choice(val('grip')),
         'movement_patterns':   movement_patterns,
         'planes_of_motion':    planes,
     }
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        print(__doc__, file=sys.stderr)
-        sys.exit(2)
-
-    csv_path = Path(sys.argv[1])
+    default_path = Path(__file__).resolve().parent.parent / 'data' / 'functional-fitness.xlsx'
+    xlsx_path = Path(sys.argv[1]) if len(sys.argv) > 1 else default_path
     out_path = Path(__file__).resolve().parent.parent / 'data' / 'exercises-functional.json'
 
+    wb = openpyxl.load_workbook(str(xlsx_path), data_only=False)
+    ws = wb.active
+
     records: list[dict] = []
-    with csv_path.open('r', encoding='utf-8', newline='') as f:
-        reader = csv.reader(f)
-        for lineno, row in enumerate(reader, start=1):
-            if lineno <= 16:                    # header + blank rows
-                continue
-            if not any(cell.strip() for cell in row):  # blank line
-                continue
-            name = norm(row[COL['name']]) if COL['name'] < len(row) else ''
-            if not name:
-                continue
-            records.append(transform(row, len(records) + 1))
+    # Data starts at row 17; iterate through all rows with a name.
+    for row_num in range(17, ws.max_row + 1):
+        name = norm(cell(ws, row_num, 'name').value)
+        if not name:
+            continue
+        records.append(transform(ws, row_num, len(records) + 1))
 
     out_path.write_text(json.dumps(records, ensure_ascii=False, indent=None), encoding='utf-8')
 
-    # Stats
     from collections import Counter
     def top(field: str, n: int = 5) -> str:
         c = Counter(r[field] for r in records if r[field])
         return ', '.join(f'{k}={v}' for k, v in c.most_common(n))
 
-    print(f'Wrote {len(records)} records to {out_path.relative_to(Path.cwd())}')
+    with_video = sum(1 for r in records if r['video_url'])
+    with_explanation = sum(1 for r in records if r['explanation_url'])
+
+    print(f'Wrote {len(records)} records → {out_path.relative_to(Path.cwd())}')
+    print(f'  YouTube video_url populated:       {with_video} / {len(records)}')
+    print(f'  YouTube explanation_url populated: {with_explanation} / {len(records)}')
     print(f'  classifications: {top("classification")}')
     print(f'  difficulties:    {top("difficulty")}')
     print(f'  body_regions:    {top("body_region")}')
-    print(f'  equipment (top): {top("equipment")}')
 
 
 if __name__ == '__main__':

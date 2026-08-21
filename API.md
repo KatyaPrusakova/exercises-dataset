@@ -38,12 +38,17 @@ Every exercise object has this shape:
   "instructions": "Lie flat on your back...",
   "instruction_steps": ["Step 1...", "Step 2..."],
 
-  // Media (empty strings when has_media=false)
+  // Local media (empty strings when has_media=false; media-rich records only)
   "media_id": "EIeI8Vf",
   "image":   "https://exercises-dataset-silk.vercel.app/images/0025-EIeI8Vf.jpg",
   "gif_url": "https://exercises-dataset-silk.vercel.app/videos/0025-EIeI8Vf.gif",
   "attribution": "© Gym visual — https://gymvisual.com/",
   "has_media": true,                               // false → image/gif_url/instructions are ""
+
+  // YouTube videos (populated for ~62% of ff-* records; empty for media-rich records)
+  "video_url":       "https://youtu.be/5jDEulwWs04",   // short demonstration
+  "explanation_url": "https://youtu.be/Sa4ZWmnSC5o",   // in-depth tutorial (may be empty)
+  "has_video": true,                                    // true iff video_url is populated
 
   // Classification (auto-derived heuristically for media-rich records; sourced for ff-records)
   "classification": "Powerlifting",                // see /api/exercises/classificationList
@@ -60,7 +65,11 @@ Every exercise object has this shape:
 }
 ```
 
-**Important for mobile apps**: `has_media` tells you whether `image`/`gif_url`/`instructions` will be populated. For `ff-*` records these are all `""`. Filter with `?has_media=true` if your UI must show a GIF.
+**Important for mobile apps**:
+- `has_media` — GIF/thumbnail + English instructions available. True for the 1,324 numeric-ID records, false for all `ff-*` records.
+- `has_video` — YouTube video URL available. True for ~2,013 of the `ff-*` records, false for the media-rich records.
+- Use `?has_media=true` if your UI must show a GIF; use `?has_video=true` to only get records with embeddable YouTube videos.
+- To render the YouTube video in a mobile app, embed the `video_url` in a `WebView` or use a native YouTube-player SDK. The URLs use the `youtu.be` short form and are directly embeddable via `https://www.youtube.com/embed/<id>`.
 
 Paginated list responses have this envelope:
 
@@ -97,6 +106,7 @@ List/filter/paginate exercises.
 | `difficulty` | string | — | Case-insensitive. E.g. `Beginner`, `Intermediate`, `Advanced`. |
 | `mechanics` | string | — | `Compound` / `Isolation`. |
 | `has_media` | bool | — | `true` returns only media-rich records; `false` only ff-records. Also accepts `hasMedia`. |
+| `has_video` | bool | — | `true` returns only records with a YouTube `video_url`. Also accepts `hasVideo`. |
 | `name` | string | — | Case-insensitive substring match on exercise name. Also accepts `q`. |
 
 Multiple filters combine with AND.

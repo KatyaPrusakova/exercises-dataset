@@ -10,6 +10,7 @@ module.exports = (req, res) => {
   const difficulty = params.get('difficulty');
   const mechanics = params.get('mechanics');
   const hasMedia = parseBool(params.get('has_media') || params.get('hasMedia'));
+  const hasVideo = parseBool(params.get('has_video') || params.get('hasVideo'));
   const name = params.get('name') && params.get('name').toLowerCase().trim();
 
   let filtered = EXERCISES;
@@ -21,6 +22,7 @@ module.exports = (req, res) => {
   if (difficulty) filtered = filtered.filter(ex => ex.difficulty.toLowerCase() === difficulty.toLowerCase());
   if (mechanics) filtered = filtered.filter(ex => ex.mechanics.toLowerCase() === mechanics.toLowerCase());
   if (hasMedia !== null) filtered = filtered.filter(ex => ex.has_media === hasMedia);
+  if (hasVideo !== null) filtered = filtered.filter(ex => ex.has_video === hasVideo);
   if (name) filtered = filtered.filter(ex => ex.name.toLowerCase().includes(name));
 
   const page = paginate(filtered, parseLimit(params.get('limit')), parseOffset(params.get('offset')));
