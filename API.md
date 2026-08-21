@@ -1,6 +1,11 @@
 # Exercises API
 
-Public HTTP API for the 1,324-exercise fitness dataset. Read-only, no auth.
+Public HTTP API for a merged **4,566-exercise** fitness dataset:
+
+- **1,324 media-rich exercises** — 180×180 GIF + thumbnail + English instructions per exercise. Numeric IDs (`0001`–`3655`). Sourced from the Gym-visual dataset.
+- **3,242 functional-fitness exercises** — no media, no instructions, but with rich classification metadata (kettlebell, clubbell, macebell, gymnastic rings, Olympic lifts, etc.). IDs prefixed `ff-` (e.g. `ff-0177`).
+
+Read-only, no auth.
 
 **Base URL:** `https://exercises-dataset-silk.vercel.app`
 
@@ -16,22 +21,46 @@ Every exercise object has this shape:
 
 ```jsonc
 {
-  "id": "0025",                                    // 4-digit zero-padded string
+  // Core identity
+  "id": "0025",                                    // "NNNN" for media-rich, "ff-NNNN" for functional-fitness
   "name": "barbell bench press",
+
+  // Anatomy / equipment
   "category": "chest",                             // mirrors body_part
   "body_part": "chest",                            // enum, see /api/exercises/bodyPartList
+  "body_region": "Upper Body",                     // Core | Lower Body | Upper Body | Full Body
   "equipment": "barbell",                          // see /api/exercises/equipmentList
   "target": "pectorals",                           // primary muscle, see /api/exercises/targetList
   "muscle_group": "chest",
   "secondary_muscles": ["triceps", "shoulders"],
-  "instructions": "Lie flat on your back...",      // English, single string
-  "instruction_steps": ["Step 1...", "Step 2..."], // English, ordered array
+
+  // Instructions (empty string for functional-fitness records)
+  "instructions": "Lie flat on your back...",
+  "instruction_steps": ["Step 1...", "Step 2..."],
+
+  // Media (empty strings when has_media=false)
   "media_id": "EIeI8Vf",
-  "image": "https://exercises-dataset-silk.vercel.app/images/0025-EIeI8Vf.jpg",
+  "image":   "https://exercises-dataset-silk.vercel.app/images/0025-EIeI8Vf.jpg",
   "gif_url": "https://exercises-dataset-silk.vercel.app/videos/0025-EIeI8Vf.gif",
-  "attribution": "© Gym visual — https://gymvisual.com/"
+  "attribution": "© Gym visual — https://gymvisual.com/",
+  "has_media": true,                               // false → image/gif_url/instructions are ""
+
+  // Classification (auto-derived heuristically for media-rich records; sourced for ff-records)
+  "classification": "Powerlifting",                // see /api/exercises/classificationList
+  "difficulty":     "Intermediate",                // see /api/exercises/difficultyList
+  "mechanics":      "Compound",                    // Compound | Isolation
+
+  // Movement analysis (populated for ff-records; empty for media-rich records)
+  "laterality":       "Bilateral",                 // Bilateral | Unilateral | Contralateral | Ipsilateral
+  "force_type":       "Push",                      // Push | Pull | Other | Unsorted
+  "posture":          "Supine",                    // Standing | Seated | Supine | Prone | Bridge | Quadruped | ...
+  "grip":             "Overhand",
+  "movement_patterns": ["Horizontal Push"],        // up to 3
+  "planes_of_motion":  ["Sagittal Plane"]          // up to 3
 }
 ```
+
+**Important for mobile apps**: `has_media` tells you whether `image`/`gif_url`/`instructions` will be populated. For `ff-*` records these are all `""`. Filter with `?has_media=true` if your UI must show a GIF.
 
 Paginated list responses have this envelope:
 
@@ -61,13 +90,21 @@ List/filter/paginate exercises.
 | `limit` | int | 50 | Max 200 |
 | `offset` | int | 0 | |
 | `bodyPart` | string | — | Also accepts `body_part`. Exact match against enum. |
+| `bodyRegion` | string | — | `Core` / `Lower Body` / `Upper Body` / `Full Body`. Case-insensitive. |
 | `target` | string | — | Exact match. |
 | `equipment` | string | — | Exact match. |
+| `classification` | string | — | Case-insensitive. E.g. `Powerlifting`, `Bodybuilding`, `Calisthenics`. |
+| `difficulty` | string | — | Case-insensitive. E.g. `Beginner`, `Intermediate`, `Advanced`. |
+| `mechanics` | string | — | `Compound` / `Isolation`. |
+| `has_media` | bool | — | `true` returns only media-rich records; `false` only ff-records. Also accepts `hasMedia`. |
 | `name` | string | — | Case-insensitive substring match on exercise name. Also accepts `q`. |
 
 Multiple filters combine with AND.
 
-**Example:** `GET /api/exercises?equipment=dumbbell&target=biceps&limit=5`
+**Examples:**
+- `GET /api/exercises?equipment=dumbbell&target=biceps&limit=5`
+- `GET /api/exercises?classification=Powerlifting&has_media=true` — Powerlifting exercises that have a GIF
+- `GET /api/exercises?bodyRegion=Core&difficulty=Beginner&limit=20`
 
 ### `GET /api/exercises/:id`
 Fetch a single exercise by 4-digit ID.
@@ -119,6 +156,15 @@ Returns the sorted array of valid `target` values.
 ### `GET /api/exercises/equipmentList`
 Returns the sorted array of valid `equipment` values.
 
+### `GET /api/exercises/classificationList`
+Returns the sorted array of valid `classification` values (e.g. `Bodybuilding`, `Calisthenics`, `Powerlifting`, `Olympic Weightlifting`, `Plyometric`, `Ballistics`, `Mobility`, `Postural`, `Balance`, `Animal Flow`, `Grinds`, `Unsorted`).
+
+### `GET /api/exercises/difficultyList`
+Returns the sorted array of valid `difficulty` values (`Beginner`, `Novice`, `Intermediate`, `Advanced`, `Expert`, `Master`, `Grand Master`, `Legendary`).
+
+### `GET /api/exercises/bodyRegionList`
+Returns the sorted array of `body_region` values (`Core`, `Full Body`, `Lower Body`, `Upper Body`).
+
 ### `GET /api/exercises/:id/similar`
 Exercises ranked by similarity to `:id`. Same list envelope. Supports `?limit=&offset=`. Default `limit=20`.
 
@@ -143,15 +189,19 @@ Everything you need to build filter UI.
 **Response:**
 ```jsonc
 {
-  "categories":    ["back", "cardio", ...],       // mirrors body_parts
-  "body_parts":    ["back", "cardio", ...],        // 10 values
-  "equipment":     ["assisted", "band", ...],      // 28 values
-  "targets":       ["abductors", "abs", ...],      // 19 values
-  "muscle_groups": ["abs", "adductors", ...]       // 29 values
+  "categories":      ["back", "cardio", ...],       // mirrors body_parts
+  "body_parts":      ["back", "cardio", ...],       // 10 values
+  "body_regions":    ["Core", "Full Body", ...],    // 4 values
+  "equipment":       ["barbell", "bodyweight", ...],// 51 values
+  "targets":         ["abductors", "abs", ...],     // 27 values
+  "muscle_groups":   ["abs", "adductors", ...],     // 50 values
+  "classifications": ["Animal Flow", ...],          // 12 values
+  "difficulties":    ["Advanced", "Beginner", ...], // 8 values
+  "mechanics":       ["Compound", "Isolation", ...] // 2–3 values
 }
 ```
 
-Optional `?type=body_parts|targets|equipment|categories|muscle_groups` returns just that array.
+Optional `?type=body_parts|targets|equipment|categories|muscle_groups|classifications|difficulties|body_regions|mechanics` returns just that array.
 
 ### `GET /api/workouts`
 List preset workout sessions. Time-based (not sets/reps): every exercise is 45s work + 15s rest.
@@ -223,6 +273,7 @@ Clients don't need to send `If-Modified-Since` / `ETag` — Vercel's edge handle
 
 - **Hobby plan**: 8 serverless functions in use (Vercel's cap is 12). Several endpoint paths are `vercel.json` rewrites onto the same underlying function.
 - **Bandwidth**: Hobby plan has 100 GB/month. Static-media requests are the dominant cost — the CDN caches aggressively but a viral moment could burn the quota.
-- **No multi-language**: instructions are English only. If you need other languages, fetch `data/exercises.json` (17 MB, 10 languages) directly.
-- **No workout generator**: `/api/workouts` returns a fixed curated set. If you need dynamic goal-based programming (e.g. "push day, 40 min, intermediate"), that's not built.
-- **No `sortMethod` / `effortLevel` / `mechanics`**: those fields don't exist in the underlying dataset. Sorting is dataset-order (ID-ascending) only.
+- **No multi-language**: instructions are English only. If you need other languages, fetch `data/exercises.json` (17 MB, 10 languages) directly. Note: the ff-* records have no instructions in any language.
+- **No workout generator**: `/api/workouts` returns a fixed curated set. If you need dynamic goal-based programming, that's not built.
+- **Classification on media-rich records is heuristic**: the original 1,324 records didn't ship with `classification`/`difficulty`/`mechanics` values, so those are derived from equipment + name patterns (barbell squat/deadlift/bench → Powerlifting, etc.). Treat them as approximate; the values on `ff-*` records are authoritative from the source.
+- **`sort`**: not supported. Results come back in dataset order (`0001`… then `ff-0001`…).

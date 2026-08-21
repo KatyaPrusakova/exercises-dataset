@@ -7,6 +7,7 @@ export interface Exercise {
   name: string;
   category: string;
   body_part: string;
+  body_region: string;
   equipment: string;
   target: string;
   muscle_group: string;
@@ -17,6 +18,16 @@ export interface Exercise {
   image: string;
   gif_url: string;
   attribution: string;
+  has_media: boolean;
+  classification: string;
+  difficulty: string;
+  mechanics: string;
+  laterality: string;
+  force_type: string;
+  posture: string;
+  grip: string;
+  movement_patterns: string[];
+  planes_of_motion: string[];
 }
 
 function loadJson<T>(relPath: string): T {
@@ -32,7 +43,11 @@ export function getOrigin(req: VercelRequest): string {
 }
 
 export function withAbsoluteMedia(ex: Exercise, origin: string): Exercise {
-  return { ...ex, image: `${origin}/${ex.image}`, gif_url: `${origin}/${ex.gif_url}` };
+  return {
+    ...ex,
+    image: ex.image ? `${origin}/${ex.image}` : '',
+    gif_url: ex.gif_url ? `${origin}/${ex.gif_url}` : '',
+  };
 }
 
 export function paginate<T>(items: T[], limit: number, offset: number) {
@@ -53,6 +68,14 @@ export function parseLimit(v: string | null | undefined, def = 50, max = 200): n
 export function parseOffset(v: string | null | undefined): number {
   const n = parseInt(v ?? '', 10);
   return Math.max(Number.isFinite(n) ? n : 0, 0);
+}
+
+export function parseBool(v: string | null | undefined): boolean | null {
+  if (v === null || v === undefined) return null;
+  const s = v.toLowerCase();
+  if (s === 'true' || s === '1' || s === 'yes') return true;
+  if (s === 'false' || s === '0' || s === 'no') return false;
+  return null;
 }
 
 export function queryParams(req: VercelRequest): URLSearchParams {

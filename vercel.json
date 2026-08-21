@@ -9,7 +9,10 @@
     { "source": "/api/exercises/name/:name", "destination": "/api/exercises?name=:name" },
     { "source": "/api/exercises/bodyPartList", "destination": "/api/facets?type=body_parts" },
     { "source": "/api/exercises/targetList", "destination": "/api/facets?type=targets" },
-    { "source": "/api/exercises/equipmentList", "destination": "/api/facets?type=equipment" }
+    { "source": "/api/exercises/equipmentList", "destination": "/api/facets?type=equipment" },
+    { "source": "/api/exercises/classificationList", "destination": "/api/facets?type=classifications" },
+    { "source": "/api/exercises/difficultyList", "destination": "/api/facets?type=difficulties" },
+    { "source": "/api/exercises/bodyRegionList", "destination": "/api/facets?type=body_regions" }
   ],
   "headers": [
     {
