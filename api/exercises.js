@@ -1,21 +1,20 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { EXERCISES, getOrigin, paginate, parseBool, parseLimit, parseOffset, queryParams, withAbsoluteMedia } from '../lib/data';
+const { EXERCISES, getOrigin, paginate, parseBool, parseLimit, parseOffset, queryParams, withAbsoluteMedia } = require('../lib/data');
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = (req, res) => {
   const origin = getOrigin(req);
   const params = queryParams(req);
 
   const limit = parseLimit(params.get('limit'));
   const offset = parseOffset(params.get('offset'));
-  const bodyPart = params.get('bodyPart')?.toLowerCase() ?? params.get('body_part')?.toLowerCase();
-  const bodyRegion = params.get('bodyRegion') ?? params.get('body_region');
-  const equipment = params.get('equipment')?.toLowerCase();
-  const target = params.get('target')?.toLowerCase();
+  const bodyPart = (params.get('bodyPart') || params.get('body_part') || '').toLowerCase() || null;
+  const bodyRegion = params.get('bodyRegion') || params.get('body_region');
+  const equipment = params.get('equipment') && params.get('equipment').toLowerCase();
+  const target = params.get('target') && params.get('target').toLowerCase();
   const classification = params.get('classification');
   const difficulty = params.get('difficulty');
   const mechanics = params.get('mechanics');
-  const hasMedia = parseBool(params.get('has_media') ?? params.get('hasMedia'));
-  const name = params.get('name')?.toLowerCase().trim() ?? params.get('q')?.toLowerCase().trim();
+  const hasMedia = parseBool(params.get('has_media') || params.get('hasMedia'));
+  const name = ((params.get('name') || params.get('q') || '').toLowerCase().trim()) || null;
 
   let filtered = EXERCISES;
   if (bodyPart) filtered = filtered.filter(ex => ex.body_part === bodyPart);
@@ -30,4 +29,4 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
   const page = paginate(filtered, limit, offset);
   res.status(200).json({ ...page, items: page.items.map(ex => withAbsoluteMedia(ex, origin)) });
-}
+};
