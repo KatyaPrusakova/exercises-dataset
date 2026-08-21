@@ -1,8 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import workouts from '../../data/workouts.json';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { BY_ID, getOrigin, withAbsoluteMedia } from '../../lib/data';
 
-const BY_WORKOUT_ID = new Map(workouts.map(w => [w.id, w]));
+interface Workout {
+  id: string;
+  name: string;
+  body_part: string;
+  work_seconds: number;
+  rest_seconds: number;
+  exercise_ids: string[];
+}
+
+const WORKOUTS: Workout[] = JSON.parse(
+  readFileSync(join(process.cwd(), 'data/workouts.json'), 'utf8')
+);
+const BY_WORKOUT_ID = new Map(WORKOUTS.map(w => [w.id, w]));
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   const id = String(req.query.id ?? '').toLowerCase();

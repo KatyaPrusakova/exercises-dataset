@@ -1,9 +1,29 @@
 import type { VercelRequest } from '@vercel/node';
-import exercises from '../data/exercises.en.json';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-export type Exercise = (typeof exercises)[number];
+export interface Exercise {
+  id: string;
+  name: string;
+  category: string;
+  body_part: string;
+  equipment: string;
+  target: string;
+  muscle_group: string;
+  secondary_muscles: string[];
+  instructions: string;
+  instruction_steps: string[];
+  media_id: string;
+  image: string;
+  gif_url: string;
+  attribution: string;
+}
 
-export const EXERCISES: Exercise[] = exercises as Exercise[];
+function loadJson<T>(relPath: string): T {
+  return JSON.parse(readFileSync(join(process.cwd(), relPath), 'utf8')) as T;
+}
+
+export const EXERCISES: Exercise[] = loadJson<Exercise[]>('data/exercises.en.json');
 export const BY_ID: Map<string, Exercise> = new Map(EXERCISES.map(ex => [ex.id, ex]));
 
 export function getOrigin(req: VercelRequest): string {

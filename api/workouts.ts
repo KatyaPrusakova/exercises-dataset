@@ -1,8 +1,22 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import workouts from '../data/workouts.json';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+interface Workout {
+  id: string;
+  name: string;
+  body_part: string;
+  work_seconds: number;
+  rest_seconds: number;
+  exercise_ids: string[];
+}
+
+const WORKOUTS: Workout[] = JSON.parse(
+  readFileSync(join(process.cwd(), 'data/workouts.json'), 'utf8')
+);
 
 export default function handler(_req: VercelRequest, res: VercelResponse) {
-  const summaries = workouts.map(w => ({
+  const summaries = WORKOUTS.map(w => ({
     id: w.id,
     name: w.name,
     body_part: w.body_part,
